@@ -31,13 +31,23 @@ import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import api from '../services/api';
 
+// Definir la forma del curso
+interface Course {
+  id: number;
+  name: string;
+  description: string;
+  teacherName: string;
+}
+
 const authStore = useAuthStore();
-const courses = ref([]);
+
+// Tipar el ref explícitamente como un array de Cursos
+const courses = ref<Course[]>([]); 
 const showModal = ref(false);
 
 const fetchCourses = async () => {
   try {
-    const { data } = await api.get('/courses');
+    const { data } = await api.get<Course[]>('/courses');
     courses.value = data;
   } catch (error) {
     console.error("Error cargando cursos", error);
@@ -47,6 +57,18 @@ const fetchCourses = async () => {
 const enroll = async (courseId: number) => {
   await api.post(`/courses/${courseId}/enroll`);
   alert("Inscripción exitosa");
+};
+
+// Crear la función deleteCourse que te faltaba en el script
+const deleteCourse = async (courseId: number) => {
+  if (confirm("¿Estás seguro de eliminar este curso?")) {
+    try {
+      await api.delete(`/courses/${courseId}`);
+      await fetchCourses(); // Recargar lista
+    } catch (error) {
+      alert("Error al eliminar");
+    }
+  }
 };
 
 onMounted(fetchCourses);
