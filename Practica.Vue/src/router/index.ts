@@ -6,21 +6,20 @@ import TeacherDashboard from '../views/TeacherDashboard.vue';
 import StudentDashboard from '../views/StudentDashboard.vue';
 
 const routes = [
-  // Rutas públicas (Sin el marco del Layout)
-  { path: '/', component: Login },
-  { path: '/register', component: Register },
+  { path: '/', name: 'Login', component: Login },
+  { path: '/register', name: 'Register', component: Register },
 
   // Rutas privadas (Dentro del Layout)
   {
-    path: '/',
-    component: () => import('../layouts/MainLayout.vue'), // Cargamos el marco
+    path: '/dashboard',
+    component: () => import('../layouts/MainLayout.vue'),
+    meta: { requiresAuth: true },
     children: [
       { path: 'admin', component: AdminDashboard, meta: { role: 'Admin' } },
       { path: 'teacher', component: TeacherDashboard, meta: { role: 'Teacher' } },
       { path: 'student', component: StudentDashboard, meta: { role: 'Student' } },
       { path: 'courses', component: () => import('../views/CourseView.vue') },
-    ],
-    meta: { requiresAuth: true }
+    ]
   }
 ];
 
@@ -29,20 +28,23 @@ const router = createRouter({
   routes,
 });
 
-// GUARDIA DE SEGURIDAD
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('token');
-  const userRole = localStorage.getItem('role'); // "Admin", "Teacher" o "Student"
+  const userRole = localStorage.getItem('role');
 
-  // 1. Si la ruta requiere autenticación y no hay token, al Login
   if (to.meta.requiresAuth && !token) {
-    return next({ name: 'Login' });
+    return next('/');
   }
 
-  // 2. Si la ruta pide un rol específico y el usuario no lo tiene, al Login (o a una página de error)
+  if (token && (to.path === '/' || to.path === '/register')) {
+     if (userRole === 'Admin') return next('/dashboard/admin');
+     if (userRole === 'Teacher') return next('/dashboard/teacher');
+     return next('/dashboard/student');
+  }
+
   if (to.meta.role && to.meta.role !== userRole) {
-    alert("No tienes permisos para acceder a esta sección");
-    return next({ name: 'Login' });
+    alert("No tienes permisos");
+    return next('/'); 
   }
 
   next();
