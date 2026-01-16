@@ -51,7 +51,6 @@ import { UserRole } from '../models/Auth';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
-import Select from 'primevue/select';
 import Button from 'primevue/button';
 
 const router = useRouter();
