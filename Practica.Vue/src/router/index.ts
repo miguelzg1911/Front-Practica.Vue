@@ -8,8 +8,6 @@ import StudentDashboard from '../views/StudentDashboard.vue';
 const routes = [
   { path: '/', name: 'Login', component: Login },
   { path: '/register', name: 'Register', component: Register },
-
-  // Rutas privadas (Dentro del Layout)
   {
     path: '/dashboard',
     component: () => import('../layouts/MainLayout.vue'),
@@ -18,7 +16,7 @@ const routes = [
       { path: 'admin', component: AdminDashboard, meta: { role: 'Admin' } },
       { path: 'teacher', component: TeacherDashboard, meta: { role: 'Teacher' } },
       { path: 'student', component: StudentDashboard, meta: { role: 'Student' } },
-      { path: 'courses', component: () => import('../views/CourseView.vue') },
+      // Eliminamos la ruta extra de courses para evitar duplicidad
     ]
   }
 ];
@@ -28,23 +26,29 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('role');
 
+  // Si intenta ir a una ruta privada sin token
   if (to.meta.requiresAuth && !token) {
     return next('/');
   }
 
+  // Si ya está logueado e intenta ir a Login/Register, mandarlo a su panel
   if (token && (to.path === '/' || to.path === '/register')) {
-     if (userRole === 'Admin') return next('/dashboard/admin');
-     if (userRole === 'Teacher') return next('/dashboard/teacher');
-     return next('/dashboard/student');
+    if (userRole === 'Admin') return next('/dashboard/admin');
+    if (userRole === 'Teacher') return next('/dashboard/teacher');
+    if (userRole === 'Student') return next('/dashboard/student');
   }
 
+  // Protección por Roles
   if (to.meta.role && to.meta.role !== userRole) {
-    alert("No tienes permisos");
-    return next('/'); 
+    alert("No tienes permisos para acceder a esta sección");
+    // Lo mandamos a su panel correspondiente en lugar de al login
+    if (userRole === 'Admin') return next('/dashboard/admin');
+    if (userRole === 'Teacher') return next('/dashboard/teacher');
+    return next('/dashboard/student');
   }
 
   next();

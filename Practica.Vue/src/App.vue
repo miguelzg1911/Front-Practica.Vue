@@ -3,12 +3,18 @@
 </template>
 
 <script setup lang="ts">
+
 </script>
 
 <style>
-html, body, #app {
-  height: 100%;
+
+html, body {
   margin: 0;
-  background-color: #f3f4f6;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+#app {
+  height: 100%;
 }
 </style>

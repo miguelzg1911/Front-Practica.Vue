@@ -1,30 +1,78 @@
 <template>
-  <div class="app-layout">
-    <nav class="navbar">
-      <div class="logo">Colegio App</div>
-      <ul class="nav-links">
-        <li v-if="authStore.userRole === 'Admin'"><router-link to="/admin">Admin</router-link></li>
-        <li v-if="authStore.userRole === 'Teacher'"><router-link to="/teacher">Profesor</router-link></li>
-        <li v-if="authStore.userRole === 'Student'"><router-link to="/student">Estudiante</router-link></li>
-        
-        <li><router-link to="/courses">Cursos</router-link></li>
-        
-        <li><button @click="logout" class="btn-logout">Cerrar Sesión</button></li>
-      </ul>
-    </nav>
+  <div class="min-h-screen bg-slate-50">
+    <Menubar :model="menuItems" class="px-6 border-0 shadow-md bg-white">
+      <template #start>
+        <div class="flex items-center gap-2 mr-4">
+          <div class="bg-primary-600 p-2 rounded-lg">
+            <i class="pi pi-graduation-cap text-white text-xl"></i>
+          </div>
+          <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-800">
+            EduGestion
+          </span>
+        </div>
+      </template>
 
-    <main class="content">
-      <router-view></router-view>
+      <template #item="{ item, props }">
+        <router-link v-if="item.route" :to="item.route" v-bind="props.action" class="flex items-center">
+          <span :class="item.icon" class="mr-2" />
+          <span class="font-medium">{{ item.label }}</span>
+        </router-link>
+      </template>
+
+      <template #end>
+        <div class="flex items-center gap-4">
+          <div class="hidden md:flex flex-col text-right mr-2">
+            <span class="text-sm font-bold text-gray-800">{{ authStore.username || 'Usuario' }}</span>
+            <span class="text-xs text-gray-500">{{ authStore.userRole }}</span>
+          </div>
+          <Button 
+            label="Salir" 
+            icon="pi pi-sign-out" 
+            severity="danger" 
+            text 
+            @click="logout" 
+            class="hover:bg-red-50"
+          />
+        </div>
+      </template>
+    </Menubar>
+
+    <main class="p-6 max-w-7xl mx-auto">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
+import Menubar from 'primevue/menubar';
+import Button from 'primevue/button';
 
 const authStore = useAuthStore();
 const router = useRouter();
+
+// Construcción dinámica del menú según el rol
+const menuItems = computed(() => {
+  const items = [];
+
+  if (authStore.userRole === 'Admin') {
+    items.push({ label: 'Administración', icon: 'pi pi-sliders-h', route: '/dashboard/admin' });
+  }
+  if (authStore.userRole === 'Teacher') {
+    items.push({ label: 'Mis Cursos', icon: 'pi pi-book', route: '/dashboard/teacher' });
+  }
+  if (authStore.userRole === 'Student') {
+    items.push({ label: 'Mi Portal', icon: 'pi pi-user', route: '/dashboard/student' });
+  }
+
+  return items;
+});
 
 const logout = () => {
   authStore.logout();
@@ -32,32 +80,15 @@ const logout = () => {
 };
 </script>
 
-<style scoped>
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  padding: 1rem 2rem;
-  background-color: #2c3e50;
-  color: white;
+<style>
+/* Animación suave de cambio de página */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
 }
-.nav-links {
-  display: flex;
-  list-style: none;
-  gap: 20px;
-}
-.nav-links a {
-  color: white;
-  text-decoration: none;
-}
-.content {
-  padding: 20px;
-}
-.btn-logout {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: 4px;
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

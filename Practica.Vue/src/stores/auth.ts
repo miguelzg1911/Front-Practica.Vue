@@ -4,17 +4,16 @@ import type { LoginDto, AuthResponse } from '../models/Auth';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
-        token: localStorage.getItem('token') || null as string | null,
-        refreshToken: localStorage.getItem('refreshToken') || null as string | null,
-        userRole: localStorage.getItem('role') || null as string | null,
-        username: localStorage.getItem('username') || null as string | null,
-        userId: localStorage.getItem('userId') || null as string | null
+        token: localStorage.getItem('token'),
+        refreshToken: localStorage.getItem('refreshToken'),
+        userRole: localStorage.getItem('role'),
+        username: localStorage.getItem('username'),
+        userId: localStorage.getItem('userId')
     }),
     actions: {
         async login(credentials: LoginDto) {
             const { data } = await api.post<AuthResponse>('/auth/login', credentials);
             
-            // Guardamos todo lo que nos devuelve el DTO
             this.token = data.accessToken;
             this.refreshToken = data.refreshToken;
             this.userRole = data.role;
@@ -31,6 +30,8 @@ export const useAuthStore = defineStore('auth', {
             this.token = null;
             this.refreshToken = null;
             this.userRole = null;
+            this.username = null;
+            this.userId = null;
             localStorage.clear();
         }
     }
