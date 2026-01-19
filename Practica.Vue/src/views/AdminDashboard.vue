@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue';
 import api from '../services/api';
 
+// Imports de PrimeVue
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -21,31 +22,27 @@ const students = ref([]);
 const teachers = ref([]);
 const courses = ref([]);
 
-// Visibilidad de Modales
 const studentDialog = ref(false);
 const teacherDialog = ref(false);
 const courseDialog = ref(false);
 
-const isEditing = ref(false); // Para saber si estamos editando
+const isEditing = ref(false); 
 const selectedId = ref<number | null>(null);
+const uploading = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
 
-const studentForm = ref({ fullName: '', document: '', email: '', username: '', password: 'Student123*' });
-const teacherForm = ref({ name: '', subject: '', email: '' });
-const courseForm = ref({ name: '', status: 'Activo', teacherId: null as number | null });
+// --- FORMULARIOS ---
+const studentForm = ref({ fullName: '', document: '', email: '', username: '', password: '' });
+const teacherForm = ref({ name: '', subject: '', email: '', document: ''});
+const courseForm = ref({ name: '', status: 'Activo', teacherId: null as number | null, imageUrl: '' });
 
-// --- LÓGICA DE CARGA ---
+// --- CARGA DE DATOS ---
 const fetchData = async () => {
     try {
-        if (currentTab.value === 'students') {
-            const { data } = await api.get('/students');
-            students.value = data;
-        } else if (currentTab.value === 'teachers') {
-            const { data } = await api.get('/teachers');
-            teachers.value = data;
-        } else if (currentTab.value === 'courses') {
-            const { data } = await api.get('/courses');
-            courses.value = data;
-        }
+        const { data } = await api.get(`/${currentTab.value}`);
+        if (currentTab.value === 'students') students.value = data;
+        else if (currentTab.value === 'teachers') teachers.value = data;
+        else if (currentTab.value === 'courses') courses.value = data;
     } catch (error) {
         console.error("Error cargando datos:", error);
     }
@@ -53,88 +50,111 @@ const fetchData = async () => {
 
 watch(currentTab, fetchData);
 
-// --- FUNCIONES PARA ABRIR MODALES ---
+// --- LÓGICA DE IMAGEN ---
+const onFileSelect = async (event: any) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    uploading.value = true;
+    try {
+        const { data } = await api.post('/upload/image', formData);
+        courseForm.value.imageUrl = data.url;
+    } catch (error) {
+        alert("Error al subir imagen");
+    } finally {
+        uploading.value = false;
+    }
+};
+
+// --- FUNCIONES DE APERTURA ---
 const openStudentModal = () => {
     isEditing.value = false;
-    selectedId.value = null;
-    studentForm.value = { fullName: '', document: '', email: '', username: '', password: 'Student123*' };
+    studentForm.value = { fullName: '', document: '', email: '', username: '', password: '' };
     studentDialog.value = true;
 };
 
 const openTeacherModal = () => {
-    teacherForm.value = { name: '', subject: '', email: '' };
+    isEditing.value = false;
+    teacherForm.value = { name: '', subject: '', email: '', document: '' };
     teacherDialog.value = true;
 };
 
 const openCourseModal = async () => {
     const { data } = await api.get('/teachers');
     teachers.value = data;
-    courseForm.value = { name: '', status: 'Activo', teacherId: null };
+    isEditing.value = false;
+    courseForm.value = { name: '', status: 'Activo', teacherId: null, imageUrl: '' };
     courseDialog.value = true;
 };
 
-// --- FUNCIÓN DE GUARDADO (CORREGIDA) ---
-const saveStudent = async () => {
-    try {
-        // Creamos el objeto que espera el Backend (StudentInputDto)
-        // Asegúrate de que los nombres coincidan con tu DTO de C#
-        const payload = {
-            name: studentForm.value.fullName,
-            document: studentForm.value.document,
-            email: studentForm.value.email
-        };
-
-        if (isEditing.value && selectedId.value) {
-            await api.put(`/students/${selectedId.value}`, payload);
-        } else {
-            await api.post('/students', studentForm.value);
-        }
-        
-        studentDialog.value = false;
-        fetchData();
-    } catch (error) {
-        console.error("Error al guardar estudiante:", error);
-        alert("No se pudo guardar la información.");
-    }
-};
-
-const saveTeacher = async () => {
-    await api.post('/teachers', teacherForm.value);
-    teacherDialog.value = false;
-    fetchData();
-};
-
-const saveCourse = async () => {
-    await api.post('/courses', courseForm.value);
-    courseDialog.value = false;
-    fetchData();
-};
-
-// --- FUNCIÓN DE ELIMINACIÓN GENÉRICA ---
-const deleteItem = async (type: 'student' | 'teacher' | 'course', id: number) => {
-    if (confirm(`¿Estás seguro de eliminar este registro?`)) {
-        try {
-            await api.delete(`/${type}s/${id}`);
-            fetchData();
-        } catch (error) {
-            console.error("Error al eliminar:", error);
-        }
-    }
-};
-
-// --- FUNCIÓN DE EDICIÓN (CORREGIDA) ---
+// --- FUNCIONES DE EDICIÓN ---
 const editStudent = (data: any) => {
     isEditing.value = true;
     selectedId.value = data.id;
-
-    studentForm.value = { 
-        fullName: data.name, 
-        document: data.document, 
-        email: data.email,
-        username: data.username || '', // Mantenemos el username si existe
-        password: '' 
-    };
+    studentForm.value = { fullName: data.name, document: data.document, email: data.email, username: data.username, password: '' };
     studentDialog.value = true;
+};
+
+const editTeacher = (data: any) => {
+    isEditing.value = true;
+    selectedId.value = data.id;
+    teacherForm.value = { name: data.name, subject: data.subject, email: data.email, document: data.document };
+    teacherDialog.value = true;
+};
+
+const editCourse = async (data: any) => {
+    const res = await api.get('/teachers');
+    teachers.value = res.data;
+    isEditing.value = true;
+    selectedId.value = data.id;
+    courseForm.value = { ...data };
+    courseDialog.value = true;
+};
+
+// --- FUNCIONES DE GUARDADO ---
+const saveStudent = async () => {
+    try {
+        const payload = isEditing.value 
+            ? { name: studentForm.value.fullName, document: studentForm.value.document, email: studentForm.value.email }
+            : { ...studentForm.value, name: studentForm.value.fullName, password: studentForm.value.document }; // Clave = Documento
+
+        if (isEditing.value) await api.put(`/students/${selectedId.value}`, payload);
+        else await api.post('/students', payload);
+        
+        studentDialog.value = false;
+        fetchData();
+    } catch (error) { alert("Error al guardar estudiante"); }
+};
+
+const saveTeacher = async () => {
+    try {
+        if (isEditing.value) {
+            await api.put(`/teachers/${selectedId.value}`, teacherForm.value);
+        } else {
+            // El backend generará el username y usará el documento como clave
+            await api.post('/teachers', teacherForm.value);
+            alert(`Profesor creado. Accederá con su Email y su Documento.`);
+        }
+        teacherDialog.value = false;
+        fetchData();
+    } catch (error) { alert("Error al guardar profesor."); }
+};
+
+const saveCourse = async () => {
+    try {
+        if (isEditing.value) await api.put(`/courses/${selectedId.value}`, courseForm.value);
+        else await api.post('/courses', courseForm.value);
+        courseDialog.value = false;
+        fetchData();
+    } catch (error) { alert("Error al guardar curso."); }
+};
+
+const deleteItem = async (type: string, id: number) => {
+    if (confirm(`¿Eliminar este registro?`)) {
+        await api.delete(`/${type}s/${id}`);
+        fetchData();
+    }
 };
 
 onMounted(fetchData);
@@ -153,14 +173,14 @@ onMounted(fetchData);
 
         <TabPanels>
             <TabPanel value="students">
-                <div class="flex justify-between mb-4 mt-4">
-                    <h2 class="text-xl font-semibold">Lista de Estudiantes</h2>
+                <div class="flex justify-between items-center mb-4 mt-4">
+                    <h2 class="text-xl font-semibold">Listado de Estudiantes</h2>
                     <Button label="Nuevo Estudiante" icon="pi pi-plus" @click="openStudentModal" />
                 </div>
-                <DataTable :value="students" paginator :rows="5" responsiveLayout="scroll">
-                    <Column field="name" header="Nombre Completo"></Column> 
-                    <Column field="email" header="Email"></Column>
+                <DataTable :value="students" paginator :rows="5">
+                    <Column field="name" header="Nombre"></Column> 
                     <Column field="document" header="Documento"></Column>
+                    <Column field="email" header="Email"></Column>
                     <Column header="Acciones">
                         <template #body="slotProps">
                             <div class="flex gap-2">
@@ -173,8 +193,8 @@ onMounted(fetchData);
             </TabPanel>
 
             <TabPanel value="teachers">
-                <div class="flex justify-between mb-4 mt-4">
-                    <h2 class="text-xl font-semibold">Lista de Docentes</h2>
+                <div class="flex justify-between items-center mb-4 mt-4">
+                    <h2 class="text-xl font-semibold">Listado de Docentes</h2>
                     <Button label="Nuevo Profesor" icon="pi pi-plus" severity="success" @click="openTeacherModal" />
                 </div>
                 <DataTable :value="teachers" paginator :rows="5">
@@ -183,20 +203,28 @@ onMounted(fetchData);
                     <Column field="email" header="Email"></Column>
                     <Column header="Acciones">
                         <template #body="slotProps">
-                            <Button icon="pi pi-trash" severity="danger" text @click="deleteItem('teacher', slotProps.data.id)" />
+                            <div class="flex gap-2">
+                                <Button icon="pi pi-pencil" severity="warn" text @click="editTeacher(slotProps.data)" />
+                                <Button icon="pi pi-trash" severity="danger" text @click="deleteItem('teacher', slotProps.data.id)" />
+                            </div>
                         </template>
                     </Column>
                 </DataTable>
             </TabPanel>
 
             <TabPanel value="courses">
-                <div class="flex justify-between mb-4 mt-4">
-                    <h2 class="text-xl font-semibold">Catálogo Global</h2>
+                <div class="flex justify-between items-center mb-4 mt-4">
+                    <h2 class="text-xl font-semibold">Gestión de Cursos</h2>
                     <Button label="Nuevo Curso" icon="pi pi-book" severity="help" @click="openCourseModal" />
                 </div>
                 <DataTable :value="courses" paginator :rows="5">
-                    <Column field="name" header="Curso"></Column>
-                    <Column field="teacherName" header="Profesor"></Column>
+                    <Column header="Portada">
+                        <template #body="slotProps">
+                            <img v-if="slotProps.data.imageUrl" :src="slotProps.data.imageUrl" class="w-16 h-10 object-cover rounded shadow" />
+                            <i v-else class="pi pi-image text-gray-300 text-2xl"></i>
+                        </template>
+                    </Column>
+                    <Column field="name" header="Nombre"></Column>
                     <Column field="status" header="Estado">
                         <template #body="slotProps">
                             <Tag :value="slotProps.data.status" :severity="slotProps.data.status === 'Activo' ? 'success' : 'warn'" />
@@ -204,7 +232,10 @@ onMounted(fetchData);
                     </Column>
                     <Column header="Acciones">
                         <template #body="slotProps">
-                            <Button icon="pi pi-trash" severity="danger" text @click="deleteItem('course', slotProps.data.id)" />
+                            <div class="flex gap-2">
+                                <Button icon="pi pi-pencil" severity="warn" text @click="editCourse(slotProps.data)" />
+                                <Button icon="pi pi-trash" severity="danger" text @click="deleteItem('course', slotProps.data.id)" />
+                            </div>
                         </template>
                     </Column>
                 </DataTable>
@@ -212,44 +243,42 @@ onMounted(fetchData);
         </TabPanels>
     </Tabs>
 
-    <Dialog v-model:visible="studentDialog" :header="isEditing ? 'Editar Estudiante' : 'Registrar Estudiante'" :modal="true" style="width: 450px">
-        <div class="flex flex-col gap-4 py-2">
-            <div class="flex flex-col gap-1">
-                <label class="text-sm font-bold">Nombre Completo</label>
-                <InputText v-model="studentForm.fullName" placeholder="Ej: Juan Pérez" />
-            </div>
-            <div class="flex flex-col gap-1">
-                <label class="text-sm font-bold">Documento</label>
-                <InputText v-model="studentForm.document" placeholder="Cédula o ID" />
-            </div>
-            <div class="flex flex-col gap-1">
-                <label class="text-sm font-bold">Email</label>
-                <InputText v-model="studentForm.email" placeholder="correo@ejemplo.com" />
-            </div>
-            <div v-if="!isEditing" class="flex flex-col gap-1">
-                <label class="text-sm font-bold">Usuario de Login</label>
-                <InputText v-model="studentForm.username" placeholder="juan.perez" />
-            </div>
-            <Button :label="isEditing ? 'Actualizar' : 'Guardar Estudiante'" 
-                    :icon="isEditing ? 'pi pi-refresh' : 'pi pi-save'" 
-                    @click="saveStudent" class="mt-2" />
+    <Dialog v-model:visible="studentDialog" :header="isEditing ? 'Editar Estudiante' : 'Nuevo Estudiante'" modal style="width: 400px">
+        <div class="flex flex-col gap-3 py-2">
+            <label class="font-bold">Nombre Completo</label>
+            <InputText v-model="studentForm.fullName" />
+            <label class="font-bold">Documento (Será su contraseña)</label>
+            <InputText v-model="studentForm.document" />
+            <label class="font-bold">Email</label>
+            <InputText v-model="studentForm.email" />
+            <Button :label="isEditing ? 'Actualizar' : 'Guardar'" @click="saveStudent" class="mt-2 w-full" />
         </div>
     </Dialog>
 
-    <Dialog v-model:visible="teacherDialog" header="Registrar Profesor" :modal="true" style="width: 450px">
-        <div class="flex flex-col gap-4 py-2">
-            <InputText v-model="teacherForm.name" placeholder="Nombre completo" />
-            <InputText v-model="teacherForm.subject" placeholder="Materia o Especialidad" />
-            <InputText v-model="teacherForm.email" placeholder="Correo electrónico" />
-            <Button label="Guardar Profesor" icon="pi pi-save" severity="success" @click="saveTeacher" />
+    <Dialog v-model:visible="teacherDialog" :header="isEditing ? 'Editar Profesor' : 'Registrar Profesor'" modal style="width: 400px">
+        <div class="flex flex-col gap-3 py-2">
+            <label class="font-bold">Nombre Completo</label>
+            <InputText v-model="teacherForm.name" placeholder="Ej: Andres" />
+            <label class="font-bold">Documento (Será su contraseña)</label>
+            <InputText v-model="teacherForm.document" placeholder="Ej: 1234567" />
+            <label class="font-bold">Materia</label>
+            <InputText v-model="teacherForm.subject" placeholder="C#" />
+            <label class="font-bold">Email</label>
+            <InputText v-model="teacherForm.email" placeholder="andres@riwi.io" />
+            <Button :label="isEditing ? 'Actualizar' : 'Guardar'" :severity="isEditing ? 'warn' : 'success'" @click="saveTeacher" class="mt-2 w-full" />
         </div>
     </Dialog>
 
-    <Dialog v-model:visible="courseDialog" header="Crear Nuevo Curso" :modal="true" style="width: 450px">
+    <Dialog v-model:visible="courseDialog" :header="isEditing ? 'Editar Curso' : 'Nuevo Curso'" modal style="width: 450px">
         <div class="flex flex-col gap-4 py-2">
-            <InputText v-model="courseForm.name" placeholder="Nombre del curso" />
-            <Select v-model="courseForm.teacherId" :options="teachers" optionLabel="name" optionValue="id" placeholder="Asignar Profesor" />
-            <Button label="Crear Curso" icon="pi pi-check" severity="help" @click="saveCourse" />
+            <div class="flex flex-col items-center gap-2 border-b pb-4">
+                <img v-if="courseForm.imageUrl" :src="courseForm.imageUrl" class="w-32 h-20 object-cover rounded shadow" />
+                <input type="file" ref="fileInput" class="hidden" @change="onFileSelect" />
+                <Button :label="uploading ? 'Subiendo...' : 'Cambiar Imagen'" icon="pi pi-image" text @click="fileInput?.click()" />
+            </div>
+            <InputText v-model="courseForm.name" placeholder="Nombre del curso" class="w-full" />
+            <Select v-model="courseForm.teacherId" :options="teachers" optionLabel="name" optionValue="id" placeholder="Asignar Profesor" class="w-full" />
+            <Button :label="isEditing ? 'Actualizar' : 'Crear'" severity="help" @click="saveCourse" :disabled="uploading" class="w-full" />
         </div>
     </Dialog>
   </div>

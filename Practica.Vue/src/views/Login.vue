@@ -72,12 +72,16 @@ const handleLogin = async () => {
   loading.value = true;
   try {
     await authStore.login({ email: email.value, password: password.value });
-    
-    // Redirección por Rol
-    const role = authStore.userRole;
-    if (role === 'Admin') router.push('/dashboard/admin');
-    else if (role === 'Teacher') router.push('/dashboard/teacher');
-    else router.push('/dashboard/student');
+
+    const role = authStore.user?.role; 
+
+    if (role === 'Admin') {
+      router.push('/dashboard/admin');
+    } else if (role === 'Teacher') {
+      router.push('/dashboard/teacher');
+    } else {
+      router.push('/dashboard/student');
+    }
 
   } catch (err) {
     alert("Error: Credenciales inválidas");

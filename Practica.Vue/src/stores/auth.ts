@@ -6,9 +6,12 @@ export const useAuthStore = defineStore('auth', {
     state: () => ({
         token: localStorage.getItem('token'),
         refreshToken: localStorage.getItem('refreshToken'),
-        userRole: localStorage.getItem('role'),
-        username: localStorage.getItem('username'),
-        userId: localStorage.getItem('userId')
+        // Agrupamos la info del usuario en un objeto reactivo
+        user: localStorage.getItem('userId') ? {
+            id: Number(localStorage.getItem('userId')),
+            username: localStorage.getItem('username'),
+            role: localStorage.getItem('role')
+        } : null
     }),
     actions: {
         async login(credentials: LoginDto) {
@@ -16,22 +19,23 @@ export const useAuthStore = defineStore('auth', {
             
             this.token = data.accessToken;
             this.refreshToken = data.refreshToken;
-            this.userRole = data.role;
-            this.username = data.username;
-            this.userId = data.id.toString();
+
+            this.user = {
+                id: data.id,
+                username: data.username,
+                role: data.role
+            };
 
             localStorage.setItem('token', data.accessToken);
             localStorage.setItem('refreshToken', data.refreshToken);
             localStorage.setItem('role', data.role);
             localStorage.setItem('username', data.username);
-            localStorage.setItem('userId', this.userId);
+            localStorage.setItem('userId', data.id.toString());
         },
         logout() {
             this.token = null;
             this.refreshToken = null;
-            this.userRole = null;
-            this.username = null;
-            this.userId = null;
+            this.user = null;
             localStorage.clear();
         }
     }
