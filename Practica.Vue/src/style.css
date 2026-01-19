@@ -1,12 +1,18 @@
-/* src/style.css */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Quita las reglas que centran el body para que el Layout pueda ocupar toda la pantalla */
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #f8fafc; /* Un gris muy claro para el fondo */
-  font-family: sans-serif;
+@layer tailwind-base, primevue, tailwind-utilities;
+
+@layer tailwind-base {
+  @tailwind base;
+}
+
+@layer tailwind-utilities {
+  @tailwind components;
+  @tailwind utilities;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }

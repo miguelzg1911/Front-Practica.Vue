@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '../stores/auth'; // Cambié @ por ruta relativa por si falla el alias
+import { useAuthStore } from '../stores/auth'; 
 import api from '../services/api';
 
 // Imports de PrimeVue
