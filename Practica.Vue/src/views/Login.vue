@@ -1,44 +1,48 @@
 <template>
-  <div class="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 p-4">
-    
-    <Card class="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
+  <div class="min-h-screen w-full flex items-center justify-center bg-slate-50 p-4">
+    <Card class="w-full max-w-md shadow-2xl border-0 rounded-3xl overflow-hidden bg-white">
       <template #header>
-        <div class="h-2 bg-primary-600"></div>
-        <div class="flex flex-col items-center pt-8 pb-2">
-          <div class="bg-primary-50 text-primary-600 rounded-2xl p-4 mb-4">
+        <div class="flex flex-col items-center pt-10 pb-2">
+          <div class="bg-blue-50 text-blue-600 rounded-2xl p-4 mb-4">
             <i class="pi pi-lock text-3xl"></i>
           </div>
           <h2 class="text-3xl font-black text-slate-800">Bienvenido</h2>
-          <p class="text-slate-500 font-medium">Accede a tu cuenta</p>
+          <p class="text-slate-400 font-medium mt-1">Accede a tu cuenta</p>
         </div>
       </template>
 
       <template #content>
-        <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-6 px-4">
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Email</label>
-            <span class="p-input-icon-left w-full">
-              <i class="pi pi-envelope ml-3 text-slate-400" />
-              <InputText v-model="email" placeholder="correo@ejemplo.com" class="w-full pl-11 py-3 border-slate-200 rounded-xl" />
-            </span>
+            <label class="text-xs font-bold uppercase text-slate-500 ml-1 tracking-widest">Correo Electronico</label>
+            <InputText v-model="email" placeholder="correo@ejemplo.com" 
+                       class="w-full border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20" />
           </div>
 
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Contraseña</label>
-            <Password v-model="password" :feedback="false" toggleMask 
-                      class="w-full" inputClass="w-full p-3 border-slate-200 rounded-xl" placeholder="••••••••" />
+          <div class="flex flex-col gap-2 w-full">
+            <label class="text-xs font-bold uppercase text-slate-500 ml-1">Contraseña</label>
+            <Password 
+              v-model="password" 
+              :feedback="false" 
+              toggleMask 
+              class="w-full" 
+              inputClass="w-full p-3 border border-slate-200 rounded-xl pr-12 h-12" 
+              placeholder="••••••••"
+            />
           </div>
 
-          <Button label="Iniciar Sesión" icon="pi pi-sign-in" @click="handleLogin" 
-                  :loading="loading" class="w-full py-4 bg-primary-600 hover:bg-primary-700 border-0 rounded-xl font-bold shadow-lg transition-all active:scale-95" />
+          <div class="flex justify-center mt-2">
+            <Button label="Iniciar Sesión" icon="pi pi-sign-in" @click="handleLogin" :loading="loading" 
+                    class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white border-0 rounded-xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-95" />
+          </div>
         </div>
       </template>
 
       <template #footer>
-        <div class="text-center pt-2 pb-6">
-          <p class="text-slate-500">
+        <div class="text-center pb-8 pt-4">
+          <p class="text-slate-400 font-medium">
             ¿No tienes cuenta? 
-            <router-link to="/register" class="text-primary-600 font-bold hover:underline">Regístrate</router-link>
+            <router-link to="/register" class="text-blue-600 font-bold hover:underline">Regístrate</router-link>
           </p>
         </div>
       </template>

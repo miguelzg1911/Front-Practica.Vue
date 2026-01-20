@@ -1,41 +1,33 @@
 <template>
   <div class="min-h-screen bg-slate-50">
-    <Menubar :model="menuItems" class="px-6 border-0 shadow-md bg-white">
-      <template #start>
-        <div class="flex items-center gap-2 mr-4">
-          <div class="bg-primary-600 p-2 rounded-lg">
-            <i class="pi pi-graduation-cap text-white text-xl"></i>
-          </div>
-          <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-800">
-            EduGestion
-          </span>
+    <nav class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
+      <div class="flex items-center gap-2">
+        <div class="bg-blue-600 p-2 rounded-lg">
+          <i class="pi pi-graduation-cap text-white text-xl"></i>
         </div>
-      </template>
+        <span class="text-xl font-black text-slate-800 tracking-tight">EduGestion</span>
+      </div>
 
-      <template #item="{ item, props }">
-        <router-link v-if="item.route" :to="item.route" v-bind="props.action" class="flex items-center">
-          <span :class="item.icon" class="mr-2" />
-          <span class="font-medium">{{ item.label }}</span>
-        </router-link>
-      </template>
-
-      <template #end>
-        <div class="flex items-center gap-4">
-          <div class="hidden md:flex flex-col text-right mr-2">
-            <span class="text-sm font-bold text-gray-800">{{ authStore.username || 'Usuario' }}</span>
-            <span class="text-xs text-gray-500">{{ authStore.userRole }}</span>
-          </div>
-          <Button 
-            label="Salir" 
-            icon="pi pi-sign-out" 
-            severity="danger" 
-            text 
-            @click="logout" 
-            class="hover:bg-red-50"
-          />
+      <div class="flex items-center gap-4">
+        <div class="hidden md:flex gap-2 mr-4">
+          <router-link v-for="item in menuItems" :key="item.label" :to="item.route" 
+            class="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2"
+            active-class="text-blue-600 bg-blue-50">
+            <i :class="item.icon"></i>
+            {{ item.label }}
+          </router-link>
         </div>
-      </template>
-    </Menubar>
+
+        <div class="flex items-center gap-3 border-l border-slate-200 pl-4">
+          <div class="text-right hidden sm:block">
+            <p class="text-xs font-black text-blue-600 uppercase leading-none">{{ authStore.userRole }}</p>
+            <p class="text-sm font-bold text-slate-700">{{ authStore.username || 'Usuario' }}</p>
+          </div>
+          <Button icon="pi pi-sign-out" label="Salir" text severity="danger" 
+                  class="font-bold hover:bg-red-50 rounded-xl px-4" @click="logout" />
+        </div>
+      </div>
+    </nav>
 
     <main class="p-6 max-w-7xl mx-auto">
       <router-view v-slot="{ Component }">
@@ -46,12 +38,10 @@
     </main>
   </div>
 </template>
-
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
-import Menubar from 'primevue/menubar';
 import Button from 'primevue/button';
 
 const authStore = useAuthStore();

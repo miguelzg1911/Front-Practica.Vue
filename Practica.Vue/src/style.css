@@ -1,18 +1,42 @@
 @import "tailwindcss";
 
-@layer tailwind-base, primevue, tailwind-utilities;
-
-@layer tailwind-base {
-  @tailwind base;
+@theme {
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
 }
 
-@layer tailwind-utilities {
-  @tailwind components;
-  @tailwind utilities;
+/* 1. Todos los inputs (normales y de password) */
+input, .p-inputtext, .p-password input {
+  width: 100% !important;
+  height: 3.2rem !important; 
+  padding: 0 1rem !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid #e2e8f0 !important;
+  background-color: white !important;
+  font-size: 1rem !important;
 }
 
-#app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* 2. Contenedor del Password: El cambio clave está aquí */
+.p-password {
+  width: 100% !important; /* Esto estira el contenedor */
+  display: flex !important;
+  align-items: center !important;
+  position: relative !important;
+}
+
+/* 3. Centrado del ojito (Se mantiene igual) */
+.p-password-toggle-mask-icon {
+  position: absolute !important;
+  top: 50% !important;
+  right: 1rem !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  z-index: 20;
+  cursor: pointer;
+  color: #64748b !important;
+}
+
+.p-password input {
+    flex: 1 1 auto !important; /* Obliga al input interno a rellenar todo el espacio del contenedor */
+    width: 100% !important;
 }

@@ -2,17 +2,29 @@ import { defineStore } from 'pinia';
 import api from '../services/api';
 import type { LoginDto, AuthResponse } from '../models/Auth';
 
+interface User {
+    id: number;
+    username: string;
+    role: string;
+}
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         token: localStorage.getItem('token'),
         refreshToken: localStorage.getItem('refreshToken'),
-        // Agrupamos la info del usuario en un objeto reactivo
         user: localStorage.getItem('userId') ? {
             id: Number(localStorage.getItem('userId')),
-            username: localStorage.getItem('username'),
-            role: localStorage.getItem('role')
-        } : null
+            username: localStorage.getItem('username') || '',
+            role: localStorage.getItem('role') || ''
+        } as User : null as User | null
     }),
+
+    getters: {
+        isAuthenticated: (state) => !!state.token,
+        userRole: (state) => state.user?.role || '',
+        username: (state) => state.user?.username || 'Usuario'
+    },
+
     actions: {
         async login(credentials: LoginDto) {
             const { data } = await api.post<AuthResponse>('/auth/login', credentials);

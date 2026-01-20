@@ -10,9 +10,18 @@ import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
+import Card from 'primevue/card'; 
+
+interface Course {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  teacherId?: number;
+  status?: string;
+}
 
 const authStore = useAuthStore();
-const allCourses = ref<any[]>([]);
+const allCourses = ref<Course[]>([]);
 const courseDialog = ref(false);
 const uploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -20,7 +29,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const courseForm = ref({ 
     name: '', 
     status: 'Activo', 
-    teacherId: null as number | null, 
+    teacherId: authStore.user?.id || null, 
     imageUrl: ''
 });
 
@@ -42,18 +51,21 @@ const onFileSelect = async (event: any) => {
     try {
         const { data } = await api.post('/upload/image', formData);
         courseForm.value.imageUrl = data.url;
-    } catch (e) { console.error(e); } 
-    finally { uploading.value = false; }
+    } catch (e) { 
+        console.error("Error subiendo imagen", e); 
+    } finally { 
+        uploading.value = false; 
+    }
 };
 
 const saveCourse = async () => {
-    if (authStore.user) {
-        courseForm.value.teacherId = authStore.user.id;
-    }
+    if (!courseForm.value.name) return alert("El nombre es obligatorio");
     
     try {
         await api.post('/courses', courseForm.value);
         courseDialog.value = false;
+        // Limpiar el formulario para el próximo curso
+        courseForm.value = { name: '', status: 'Activo', teacherId: authStore.user?.id || null, imageUrl: '' };
         fetchCourses();
     } catch (e) {
         alert("Error al guardar curso");
@@ -61,48 +73,74 @@ const saveCourse = async () => {
 };
 
 onMounted(() => {
-    if (authStore.user) {
-        courseForm.value.teacherId = authStore.user.id;
-    }
     fetchCourses();
 });
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Mis Cursos</h1>
-        <Button label="Crear Nuevo Curso" icon="pi pi-plus" @click="courseDialog = true" />
+  <div class="w-full p-4 lg:p-8 bg-slate-50/50 min-h-screen">
+    <div class="flex justify-between items-end mb-8 ml-2">
+      <div>
+        <h1 class="text-3xl font-black text-slate-800 tracking-tight">Panel Docente</h1>
+        <p class="text-slate-500 font-medium text-sm">Gestiona tus contenidos y alumnos asignados</p>
+      </div>
+      <Button label="Nuevo Curso" icon="pi pi-plus" @click="courseDialog = true" 
+              class="bg-emerald-600 text-white border-0 rounded-2xl px-6 py-4 font-bold shadow-lg hover:bg-emerald-700" />
     </div>
 
-    <DataTable :value="allCourses" stripedRows paginator :rows="10">
-        <Column header="Imagen">
+    <Card class="border-0 shadow-xl rounded-3xl overflow-hidden bg-white">
+      <template #content>
+        <DataTable :value="allCourses" paginator :rows="10" class="p-datatable-sm">
+          <Column header="PORTADA" style="width: 100px">
             <template #body="slotProps">
-                <img v-if="slotProps.data.imageUrl" :src="slotProps.data.imageUrl" class="w-12 h-12 rounded object-cover shadow" />
-                <i v-else class="pi pi-book text-gray-300 text-2xl"></i>
+              <div class="relative w-16 h-12">
+                <img :src="slotProps.data.imageUrl || 'https://via.placeholder.com/100'" class="w-full h-full object-cover rounded-xl shadow-sm" />
+              </div>
             </template>
-        </Column>
-        <Column field="name" header="Nombre del Curso"></Column>
-        <Column header="Relación">
-            <template #body="slotProps">
-                <Tag v-if="slotProps.data.teacherId === authStore.user?.id" value="Mi Curso" severity="success" />
-                <Tag v-else value="Otro Docente" severity="info" />
-            </template>
-        </Column>
-    </DataTable>
+          </Column>
+          
+          <Column field="name" header="CURSO" class="font-bold text-slate-700"></Column>
+          
+          <Column header="ESTADO">
+             <template #body="slotProps">
+                <Tag v-if="slotProps.data.teacherId === authStore.user?.id" 
+                     value="MI CLASE" severity="success" class="px-3 py-1 rounded-lg" />
+                <Tag v-else value="GLOBAL" severity="info" class="px-3 py-1 rounded-lg" />
+             </template>
+          </Column>
 
-    <Dialog v-model:visible="courseDialog" header="Nuevo Curso" modal :style="{ width: '400px' }">
-        <div class="flex flex-col gap-4">
-            <div class="flex flex-col items-center gap-2 border-b pb-4">
-                <img v-if="courseForm.imageUrl" :src="courseForm.imageUrl" class="w-24 h-24 object-cover rounded shadow" />
+          <Column header="GESTIÓN" class="text-center">
+            <template #body>
+              <div class="flex gap-2 justify-center">
+                <Button icon="pi pi-users" text severity="secondary" v-tooltip="'Ver alumnos'" />
+                <Button icon="pi pi-pencil" text severity="warn" />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+      </template>
+    </Card>
+
+    <Dialog v-model:visible="courseDialog" header="📚 Crear nuevo curso" modal 
+            class="mx-4 w-full max-w-md border-0 shadow-2xl" :pt="{ mask: { class: 'backdrop-blur-sm' } }">
+        <div class="p-6 flex flex-col gap-6">
+            <div class="flex flex-col items-center gap-4 bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200">
+                <img v-if="courseForm.imageUrl" :src="courseForm.imageUrl" class="w-32 h-32 object-cover rounded-2xl shadow-md" />
+                <div v-else class="w-32 h-32 bg-slate-200 rounded-2xl flex items-center justify-center">
+                   <i class="pi pi-image text-slate-400 text-3xl"></i>
+                </div>
                 <input type="file" ref="fileInput" class="hidden" @change="onFileSelect" />
-                <Button :label="uploading ? 'Subiendo...' : 'Elegir Imagen'" icon="pi pi-image" text size="small" @click="fileInput?.click()" />
+                <Button :label="uploading ? 'Subiendo...' : 'Cambiar Imagen'" icon="pi pi-upload" 
+                        class="p-button-sm font-bold" @click="fileInput?.click()" />
             </div>
+            
             <div class="flex flex-col gap-2">
-                <label class="text-sm font-bold text-gray-600">Nombre del curso</label>
-                <InputText v-model="courseForm.name" />
+                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Título del Curso</label>
+                <InputText v-model="courseForm.name" placeholder="Ej: Introducción a Vue 3" class="w-full h-12 px-5 rounded-2xl border-slate-200" />
             </div>
-            <Button label="Guardar Curso" @click="saveCourse" :disabled="uploading" class="w-full mt-2" />
+
+            <Button label="Publicar Curso" @click="saveCourse" :disabled="uploading" 
+                    class="w-full py-4 font-bold bg-slate-900 text-white border-0 rounded-2xl shadow-xl mt-2" />
         </div>
     </Dialog>
   </div>
