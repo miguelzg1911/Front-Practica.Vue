@@ -27,14 +27,21 @@ const enrolledCourses = ref<Course[]>([]);
 
 const fetchData = async () => {
   try {
+    // 1. Cargamos todos los cursos para el catálogo
     const resAll = await api.get('/courses');
     allCourses.value = resAll.data;
     
-    // Usamos el ID del usuario del store
+    // 2. Cargamos las inscripciones del estudiante
     const studentId = authStore.user?.id;
     if (studentId) {
       const resMine = await api.get(`/enrollments/student/${studentId}`);
       enrolledCourses.value = resMine.data;
+
+      // --- ESTO ES LO QUE NECESITAMOS REVISAR EN LA CONSOLA ---
+      console.log("Datos de mis cursos inscritos:", resMine.data);
+      if (resMine.data.length > 0) {
+        console.log("Ejemplo de URL cargada:", resMine.data[0].imageUrl);
+      }
     }
   } catch (error) {
     console.error("Error al cargar datos", error);
@@ -84,8 +91,15 @@ onMounted(fetchData);
       <template #content>
         <Tabs value="catalog" class="w-full">
           <TabList class="mb-6 border-b border-slate-100 px-4">
-            <Tab value="catalog" class="font-bold py-4 px-6"><i class="pi pi-search mr-2"></i>Explorar Cursos</Tab>
-            <Tab value="my-courses" class="font-bold py-4 px-6"><i class="pi pi-bookmark mr-2"></i>Mis Inscripciones</Tab>
+            <Tab value="catalog" class="font-bold py-4 px-6">
+              <i class="pi pi-search mr-2"></i>Explorar Cursos
+            </Tab>
+            <Tab value="my-courses" class="font-bold py-4 px-6">
+              <i class="pi pi-bookmark mr-2"></i>Mis Inscripciones 
+              <span v-if="enrolledCourses.length" class="ml-2 bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">
+                {{ enrolledCourses.length }}
+              </span>
+            </Tab>
           </TabList>
 
           <TabPanels class="p-4">
@@ -96,9 +110,6 @@ onMounted(fetchData);
                   
                   <div class="h-40 overflow-hidden relative">
                     <img :src="course.imageUrl || 'https://via.placeholder.com/400x200'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                      <span class="text-white text-xs font-bold">Ver detalles</span>
-                    </div>
                   </div>
 
                   <div class="p-5 flex flex-col flex-grow">
@@ -116,26 +127,49 @@ onMounted(fetchData);
             </TabPanel>
 
             <TabPanel value="my-courses">
-              <DataTable :value="enrolledCourses" class="p-datatable-sm" tableStyle="min-width: 100%">
-                <Column header="VISTA PREVIA" class="w-24">
-                  <template #body="slotProps">
-                    <img :src="slotProps.data.imageUrl || 'https://via.placeholder.com/100'" class="w-16 h-10 object-cover rounded-lg" />
-                  </template>
-                </Column>
-                <Column field="name" header="NOMBRE DEL CURSO" class="font-bold text-slate-700"></Column>
-                <Column header="ACCIONES" class="text-right">
-                  <template #body="slotProps">
+              <div v-if="enrolledCourses.length === 0" class="py-20 text-center">
+                <i class="pi pi-info-circle text-4xl text-slate-300 mb-4"></i>
+                <p class="text-slate-500 font-medium">Aún no te has inscrito en ningún curso.</p>
+                <Button label="Explorar catálogo" link class="mt-2 font-bold text-blue-600" />
+              </div>
+
+              <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="course in enrolledCourses" :key="course.id" 
+                     class="flex items-center p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 hover:bg-white hover:shadow-lg transition-all">
+                  
+                  <div class="w-20 h-20 flex-shrink-0 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center relative">
+                    <img 
+                      v-if="course.imageUrl" 
+                      :src="course.imageUrl" 
+                      class="w-full h-full object-cover z-10"
+                      @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
+                    />
+
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                      <i class="pi pi-image text-2xl"></i>
+                      <span class="text-[8px] font-bold uppercase mt-1">Sin imagen</span>
+                    </div>
+                  </div>
+
+                  <div class="ml-4 flex-grow">
+                    <h3 class="font-black text-slate-700 leading-tight mb-1">{{ course.name }}</h3>
+                    <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-2">Inscrito</p>
+                    
                     <Button 
                       icon="pi pi-sign-out" 
                       label="Darse de baja" 
                       severity="danger" 
                       text 
-                      class="font-bold text-xs" 
-                      @click="unenroll(slotProps.data.id)" 
+                      class="p-0 text-xs font-bold hover:underline" 
+                      @click="unenroll(course.id)" 
                     />
-                  </template>
-                </Column>
-              </DataTable>
+                  </div>
+
+                  <div class="ml-2">
+                    <Button icon="pi pi-chevron-right" text rounded class="text-slate-400" />
+                  </div>
+                </div>
+              </div>
             </TabPanel>
           </TabPanels>
         </Tabs>
